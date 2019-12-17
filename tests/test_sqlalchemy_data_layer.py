@@ -627,13 +627,6 @@ def test_get_list_invalid_page(client, register_routes):
         assert response.status_code == 400
 
 
-def test_get_list_invalid_sort(client, register_routes):
-    with client:
-        querystring = urlencode({'sort': 'error'})
-        response = client.get('/persons' + '?' + querystring, content_type='application/vnd.api+json')
-        assert response.status_code == 400
-
-
 def test_get_detail_object_not_found(client, register_routes):
     with client:
         response = client.get('/persons/3', content_type='application/vnd.api+json')
@@ -801,12 +794,6 @@ def test_sqlalchemy_data_layer_delete_relationship_error(session, person_model, 
         monkeypatch.setattr(dl.session, 'commit', commit_mock)
         monkeypatch.setattr(dl, 'get_object', get_object_mock)
         dl.delete_relationship(dict(data=None), 'foo', '', dict(id=1))
-
-
-def test_sqlalchemy_data_layer_sort_query_error(session, person_model, monkeypatch):
-    with pytest.raises(InvalidSort):
-        dl = SqlalchemyDataLayer(dict(session=session, model=person_model))
-        dl.sort_query(None, [dict(field='test')])
 
 
 def test_post_list_incorrect_type(client, register_routes, computer):

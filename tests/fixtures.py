@@ -27,12 +27,12 @@ def client(app):
     return app.test_client()
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def base():
     yield declarative_base()
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def person_tag_model(base):
     class Person_Tag(base):
 
@@ -44,7 +44,7 @@ def person_tag_model(base):
     yield Person_Tag
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def person_single_tag_model(base):
     class Person_Single_Tag(base):
 
@@ -56,7 +56,7 @@ def person_single_tag_model(base):
     yield Person_Single_Tag
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def string_json_attribute_person_model(base):
     """
     This approach to faking JSON support for testing with sqlite is borrowed from:
@@ -96,7 +96,7 @@ def string_json_attribute_person_model(base):
         address = Column(MagicJSON)
     yield StringJsonAttributePerson
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def person_model(base):
     class Person(base):
 
@@ -113,7 +113,7 @@ def person_model(base):
     yield Person
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def computer_model(base):
     class Computer(base):
 
@@ -125,7 +125,7 @@ def computer_model(base):
     yield Computer
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def engine(person_tag_model, person_single_tag_model, person_model, computer_model, string_json_attribute_person_model):
     engine = create_engine("sqlite:///:memory:")
     person_tag_model.metadata.create_all(engine)
@@ -136,7 +136,7 @@ def engine(person_tag_model, person_single_tag_model, person_model, computer_mod
     return engine
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def session(engine):
     Session = sessionmaker(bind=engine)
     return Session()
@@ -154,8 +154,10 @@ def person(session, person_model):
 
 
 @pytest.fixture()
-def person_2(session, person_model):
-    person_ = person_model(name='test2')
+def person_2(session, person_model, person_single_tag_model):
+    tag = person_single_tag_model(key="tag_key", value="tag_value")
+    person_ = person_model(name='test2', single_tag=tag)
+    person_
     session_ = session
     session_.add(person_)
     session_.commit()
@@ -175,7 +177,7 @@ def computer(session, computer_model):
     session_.commit()
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def dummy_decorator():
     def deco(f):
         def wrapper_f(*args, **kwargs):
@@ -183,7 +185,7 @@ def dummy_decorator():
         return wrapper_f
     yield deco
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def person_tag_schema():
     class PersonTagSchema(MarshmallowSchema):
         class Meta:
@@ -194,7 +196,7 @@ def person_tag_schema():
         value = fields.Str()
     yield PersonTagSchema
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def person_single_tag_schema():
     class PersonSingleTagSchema(MarshmallowSchema):
         class Meta:
@@ -206,7 +208,7 @@ def person_single_tag_schema():
     yield PersonSingleTagSchema
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def address_schema():
     class AddressSchema(MarshmallowSchema):
         street = fields.String(required=True)
@@ -216,7 +218,7 @@ def address_schema():
 
     yield AddressSchema
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def string_json_attribute_person_schema(address_schema):
     class StringJsonAttributePersonSchema(Schema):
         class Meta:
@@ -231,7 +233,7 @@ def string_json_attribute_person_schema(address_schema):
     yield StringJsonAttributePersonSchema
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def person_schema(person_tag_schema, person_single_tag_schema):
     class PersonSchema(Schema):
         class Meta:
@@ -255,7 +257,7 @@ def person_schema(person_tag_schema, person_single_tag_schema):
     yield PersonSchema
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def computer_schema():
     class ComputerSchema(Schema):
         class Meta:
@@ -275,34 +277,34 @@ def computer_schema():
     yield ComputerSchema
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def before_create_object():
     def before_create_object_(self, data, view_kwargs):
         pass
     yield before_create_object_
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def before_update_object():
     def before_update_object_(self, obj, data, view_kwargs):
         pass
     yield before_update_object_
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def before_delete_object():
     def before_delete_object_(self, obj, view_kwargs):
         pass
     yield before_delete_object_
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def person_list(session, person_model, dummy_decorator, person_schema, before_create_object):
     class PersonList(ResourceList):
         schema = person_schema
         data_layer = {'model': person_model,
                       'session': session,
-                      'mzthods': {'before_create_object': before_create_object}}
+                      'methods': {'before_create_object': before_create_object}}
         get_decorators = [dummy_decorator]
         post_decorators = [dummy_decorator]
         get_schema_kwargs = dict()
@@ -310,7 +312,7 @@ def person_list(session, person_model, dummy_decorator, person_schema, before_cr
     yield PersonList
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def person_detail(session, person_model, dummy_decorator, person_schema, before_update_object, before_delete_object):
     class PersonDetail(ResourceDetail):
         schema = person_schema
@@ -328,7 +330,7 @@ def person_detail(session, person_model, dummy_decorator, person_schema, before_
     yield PersonDetail
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def person_computers(session, person_model, dummy_decorator, person_schema):
     class PersonComputersRelationship(ResourceRelationship):
         schema = person_schema
@@ -342,7 +344,7 @@ def person_computers(session, person_model, dummy_decorator, person_schema):
     yield PersonComputersRelationship
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def person_list_raise_jsonapiexception():
     class PersonList(ResourceList):
         def get(self):
@@ -350,7 +352,7 @@ def person_list_raise_jsonapiexception():
     yield PersonList
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def person_list_raise_exception():
     class PersonList(ResourceList):
         def get(self):
@@ -358,7 +360,7 @@ def person_list_raise_exception():
     yield PersonList
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def person_list_response():
     class PersonList(ResourceList):
         def get(self):
@@ -366,7 +368,7 @@ def person_list_response():
     yield PersonList
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def person_list_without_schema(session, person_model):
     class PersonList(ResourceList):
         data_layer = {'model': person_model,
@@ -377,7 +379,7 @@ def person_list_without_schema(session, person_model):
     yield PersonList
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def query():
     def query_(self, view_kwargs):
         if view_kwargs.get('person_id') is not None:
@@ -386,7 +388,7 @@ def query():
     yield query_
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def computer_list(session, computer_model, computer_schema, query):
     class ComputerList(ResourceList):
         schema = computer_schema
@@ -396,7 +398,7 @@ def computer_list(session, computer_model, computer_schema, query):
     yield ComputerList
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def computer_detail(session, computer_model, dummy_decorator, computer_schema):
     class ComputerDetail(ResourceDetail):
         schema = computer_schema
@@ -406,7 +408,7 @@ def computer_detail(session, computer_model, dummy_decorator, computer_schema):
     yield ComputerDetail
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def computer_owner(session, computer_model, dummy_decorator, computer_schema):
     class ComputerOwnerRelationship(ResourceRelationship):
         schema = computer_schema
@@ -415,7 +417,7 @@ def computer_owner(session, computer_model, dummy_decorator, computer_schema):
     yield ComputerOwnerRelationship
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def string_json_attribute_person_detail(session, string_json_attribute_person_model, string_json_attribute_person_schema):
     class StringJsonAttributePersonDetail(ResourceDetail):
         schema = string_json_attribute_person_schema
@@ -425,7 +427,7 @@ def string_json_attribute_person_detail(session, string_json_attribute_person_mo
     yield StringJsonAttributePersonDetail
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def string_json_attribute_person_list(session, string_json_attribute_person_model, string_json_attribute_person_schema):
     class StringJsonAttributePersonList(ResourceList):
         schema = string_json_attribute_person_schema
@@ -434,13 +436,13 @@ def string_json_attribute_person_list(session, string_json_attribute_person_mode
 
     yield StringJsonAttributePersonList
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def api_blueprint(client):
     bp = Blueprint('api', __name__)
     yield bp
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def register_routes(client, app, api_blueprint, person_list, person_detail, person_computers,
                     person_list_raise_jsonapiexception, person_list_raise_exception, person_list_response,
                     person_list_without_schema, computer_list, computer_detail, computer_owner,
@@ -464,7 +466,7 @@ def register_routes(client, app, api_blueprint, person_list, person_detail, pers
     api.init_app(app)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def get_object_mock():
     class get_object(object):
         foo = type('foo', (object,), {
