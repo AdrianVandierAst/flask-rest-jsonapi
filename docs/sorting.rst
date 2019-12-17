@@ -47,3 +47,13 @@ Of course, you can combine both like that:
 
     GET /persons?sort=-name,birth_date HTTP/1.1
     Accept: application/vnd.api+json
+
+Sorting on relationship's attributes
+-------------------------------------
+
+You can sort on a relationship's attribute like that:
+
+.. sourcecode:: http
+
+    GET /computers?sort=owner.name HTTP/1.1
+    Accept: application/vnd.api+json
