@@ -157,8 +157,7 @@ class QueryStringManager(object):
 
     @property
     def sorting(self):
-        """Return fields to sort by including sort name for SQLAlchemy and row
-        sort parameter for other ORMs
+        """Return fields to sort.
 
         :return list: a list of sorting information
 
@@ -169,20 +168,16 @@ class QueryStringManager(object):
             ]
 
         """
-        if self.qs.get('sort'):
-            sorting_results = []
-            for sort_field in self.qs['sort'].split(','):
-                field = sort_field.replace('-', '')
-                if field not in self.schema._declared_fields:
-                    raise InvalidSort("{} has no attribute {}".format(self.schema.__name__, field))
-                if field in get_relationships(self.schema):
-                    raise InvalidSort("You can't sort on {} because it is a relationship field".format(field))
-                field = get_model_field(self.schema, field)
-                order = 'desc' if sort_field.startswith('-') else 'asc'
-                sorting_results.append({'field': field, 'order': order})
-            return sorting_results
+        qs_sort = self.qs.get('sort')
+        if not qs_sort:
+            return []
 
-        return []
+        sorting_results = []
+        for sort_field in qs_sort.split(','):
+            field = sort_field.strip('-')
+            order = 'desc' if sort_field.startswith('-') else 'asc'
+            sorting_results.append({'field': field, 'order': order})
+        return sorting_results
 
     @property
     def include(self):

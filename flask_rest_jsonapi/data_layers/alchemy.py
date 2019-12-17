@@ -113,10 +113,10 @@ class SqlalchemyDataLayer(BaseDataLayer):
         if qs.filters:
             query = self.filter_query(query, qs.filters, self.model)
 
+        object_count = query.count()
+        
         if qs.sorting:
             query = self.sort_query(query, qs.sorting)
-
-        object_count = query.count()
 
         if getattr(self, 'eagerload_includes', True):
             query = self.eagerload_includes(query, qs)
@@ -509,12 +509,52 @@ class SqlalchemyDataLayer(BaseDataLayer):
         :param list sort_info: sort information
         :return Query: the sorted query
         """
+        joins = []
+        order_bys = []
         for sort_opt in sort_info:
             field = sort_opt['field']
-            if not hasattr(self.model, field):
-                raise InvalidSort("{} has no attribute {}".format(self.model.__name__, field))
-            query = query.order_by(getattr(getattr(self.model, field), sort_opt['order'])())
+            current_schema = self.resource.schema
+            current_model = self.model
+            if '.' in field:
+                relationship_fields = field.split('.')
+                for schema_field in relationship_fields[:-1]:
+                    try:
+                        model_field = get_model_field(current_schema, schema_field)
+                    except Exception as e:
+                        raise InvalidSort(str(e))
+
+                    if schema_field not in get_relationships(current_schema):
+                        raise InvalidSort("{} is not a valid relationship field".format(field))
+                    
+                    if current_schema._declared_fields[schema_field].many:
+                        raise InvalidSort("Sorting on {} is ambiguous. It contains a to-many relationship.".format(field))
+
+                    related_schema_cls = get_related_schema(current_schema, schema_field)
+                    if isinstance(related_schema_cls, SchemaABC):
+                        related_schema_cls = related_schema_cls.__class__
+                    else:
+                        related_schema_cls = class_registry.get_class(related_schema_cls)
+                    current_schema = related_schema_cls
+
+                    model_column = getattr(current_model, model_field)
+                    query = query.join(model_column)
+                    current_model = model_column.property.mapper.class_
+                
+                field = relationship_fields[-1]
+
+            if field in get_relationships(current_schema):
+                raise InvalidSort("You must choose the field of a relationship to sort on it: {}".format(sort_opt['field']))
+
+            try:
+                model_field = get_model_field(current_schema, field)
+            except Exception as e:
+                raise InvalidSort(str(e))
+
+            order_bys.append(getattr(getattr(current_model, model_field), sort_opt['order'])())
+
+        query = query.order_by(*order_bys)
         return query
+
 
     def paginate_query(self, query, paginate_info):
         """Paginate query according to jsonapi 1.0

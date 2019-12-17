@@ -80,9 +80,6 @@ def test_query_string_manager(person_schema):
     qsm = QSManager(query_string, person_schema)
     with pytest.raises(BadRequest):
         qsm.pagination
-    qsm.qs['sort'] = 'computers'
-    with pytest.raises(InvalidSort):
-        qsm.sorting
 
 
 def test_resource(app, person_model, person_schema, session, monkeypatch):
@@ -339,7 +336,7 @@ def test_patch_detail_nested(client, register_routes, computer, person):
                 'tags': [
                     {'key': 'new_key', 'value': 'new_value' }
                 ],
-                'single_tag': {'key': 'new_single_key', 'value': 'new_single_value' }
+                'nested_single_tag': {'key': 'new_single_key', 'value': 'new_single_value' }
             },
             'relationships': {
                 'computers': {
@@ -361,7 +358,7 @@ def test_patch_detail_nested(client, register_routes, computer, person):
         assert response.status_code == 200
         response_dict = json.loads(response.get_data())
         assert response_dict['data']['attributes']['tags'][0]['key'] == 'new_key'
-        assert response_dict['data']['attributes']['single_tag']['key'] == 'new_single_key'
+        assert response_dict['data']['attributes']['nested_single_tag']['key'] == 'new_single_key'
 
 
 

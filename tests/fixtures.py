@@ -57,6 +57,18 @@ def person_single_tag_model(base):
 
 
 @pytest.fixture(scope="session")
+def person_nested_single_tag_model(base):
+    class Person_Nested_Single_Tag(base):
+
+        __tablename__ = 'person_nested_single_tag'
+
+        id = Column(Integer, ForeignKey('person.person_id'), primary_key=True, index=True)
+        key = Column(String)
+        value = Column(String)
+    yield Person_Nested_Single_Tag
+
+
+@pytest.fixture(scope="session")
 def string_json_attribute_person_model(base):
     """
     This approach to faking JSON support for testing with sqlite is borrowed from:
@@ -107,6 +119,7 @@ def person_model(base):
         birth_date = Column(DateTime)
         computers = relationship("Computer", backref="person")
         tags = relationship("Person_Tag", cascade="save-update, merge, delete, delete-orphan")
+        nested_single_tag = relationship("Person_Nested_Single_Tag", uselist=False, cascade="save-update, merge, delete, delete-orphan")
         single_tag = relationship("Person_Single_Tag", uselist=False, cascade="save-update, merge, delete, delete-orphan")
 
         computers_owned = relationship("Computer")
@@ -126,10 +139,11 @@ def computer_model(base):
 
 
 @pytest.fixture(scope="session")
-def engine(person_tag_model, person_single_tag_model, person_model, computer_model, string_json_attribute_person_model):
+def engine(person_tag_model, person_single_tag_model, person_nested_single_tag_model, person_model, computer_model, string_json_attribute_person_model):
     engine = create_engine("sqlite:///:memory:")
     person_tag_model.metadata.create_all(engine)
     person_single_tag_model.metadata.create_all(engine)
+    person_nested_single_tag_model.metadata.create_all(engine)
     person_model.metadata.create_all(engine)
     computer_model.metadata.create_all(engine)
     string_json_attribute_person_model.metadata.create_all(engine)
@@ -250,7 +264,10 @@ def person_schema(person_tag_schema, person_single_tag_schema):
                                  many=True)
 
         tags = fields.Nested(person_tag_schema, many=True)
-        single_tag = fields.Nested(person_single_tag_schema)
+        nested_single_tag = fields.Nested(person_single_tag_schema, many=False)
+        single_tag = Relationship(schema='PersonSingleTagSchema',
+                                  type_='person_single_tag',
+                                  many=False)
 
         computers_owned = computers
 

@@ -5,6 +5,7 @@ from .fixtures import client
 from .fixtures import base
 from .fixtures import person_tag_model
 from .fixtures import person_single_tag_model
+from .fixtures import person_nested_single_tag_model
 from .fixtures import string_json_attribute_person_model
 from .fixtures import person_model
 from .fixtures import computer_model
