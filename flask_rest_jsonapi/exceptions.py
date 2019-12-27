@@ -7,7 +7,7 @@ class JsonApiException(Exception):
     """Base exception class for unknown errors"""
 
     title = 'Unknown error'
-    status = '500'
+    status = 500
     source = None
 
     def __init__(self, detail, source=None, title=None, status=None, code=None, id_=None, links=None, meta=None):
@@ -41,7 +41,7 @@ class BadRequest(JsonApiException):
     """BadRequest error"""
 
     title = 'Bad request'
-    status = '400'
+    status = 400
 
 
 class InvalidField(BadRequest):
@@ -78,7 +78,7 @@ class ObjectNotFound(JsonApiException):
     """Error to warn that an object is not found in a database"""
 
     title = 'Object not found'
-    status = '404'
+    status = 404
 
 
 class RelatedObjectNotFound(ObjectNotFound):
@@ -97,11 +97,11 @@ class InvalidType(JsonApiException):
     """Error to warn that there is a conflit between resource types"""
 
     title = 'Invalid type'
-    status = '409'
+    status = 409
 
 
 class AccessDenied(JsonApiException):
     """Throw this error when requested resource owner doesn't match the user of the ticket"""
 
     title = 'Access denied'
-    status = '403'
+    status = 403
