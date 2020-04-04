@@ -84,6 +84,9 @@ def jsonapi_exception_formatter(func):
 
             if 'sentry' in current_app.extensions:
                 current_app.extensions['sentry'].captureException()
+            
+            if current_app.config['LOG_EXCEPTIONS'] is True:
+                current_app.logger.exception(str(e))
 
             exc = JsonApiException(getattr(e,
                                            'detail',
